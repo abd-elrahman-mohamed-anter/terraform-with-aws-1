@@ -230,7 +230,7 @@ http://<EC2-Public-IP>/
 
 You will see your Flask web application running live!
 
-## **6️⃣ Step-by-Step Deployment with Screenshots**
+## **3️⃣ Step-by-Step Deployment with Screenshots**
 
 The following section demonstrates the deployment process with visual evidence of each step.
 
