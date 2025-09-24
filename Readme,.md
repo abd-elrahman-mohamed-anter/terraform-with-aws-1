@@ -1,113 +1,239 @@
-# Terraform AWS EC2 Flask Deployment
+# Terraform + Flask Deployment on AWS EC2
 
-This repository demonstrates how to deploy a **Flask web application** on an **AWS EC2 instance** using **Terraform**.
+This repository demonstrates how to deploy a **Flask web application** on an **AWS EC2 instance** using **Terraform**. The project combines **Infrastructure as Code** with **automated server setup**, allowing you to launch a fully functional web app in the cloud with minimal manual configuration.
 
----
+This setup is ideal for learning how to:
 
-## 🔹 Project Structure
-
-```
-
-terraform-ec2-flask/
-├── main.tf           # Terraform configuration
-├── variables.tf      # Terraform variables
-├── userdata.sh       # Script to install Python, Flask and run the app
-├── terraform.tfvars  # Local file with sensitive values (not included in GitHub)
-└── .gitignore        # Ignores sensitive files
-
-````
+* Use Terraform to provision AWS resources
+* Automate server configuration using a startup script (`userdata.sh`)
+* Deploy Python Flask applications on EC2 instances
+* Manage security using AWS Security Groups
 
 ---
 
-## 🔹 Features
+## **1️⃣ main.tf – Infrastructure as Code**
 
-- Deploys an EC2 instance in a chosen region.
-- Creates a Security Group allowing:
-  - SSH (22)
-  - HTTP (80)
-  - Flask app (port 80)
-- Installs Python3 and Flask automatically.
-- Runs a simple Flask web app accessible via the EC2 public IP.
+The `main.tf` file defines all AWS resources, including:
 
----
+1. **Terraform provider**
+2. **AWS region and VPC**
+3. **Security Group** for SSH and HTTP access
+4. **EC2 instance** with user data script
+5. **Output** for the EC2 public IP
 
-## 🔹 Setup Instructions
+This approach ensures that all your cloud infrastructure is **version-controlled, reproducible, and easy to manage**.
 
-1. **Clone the repository**
-
-```bash
-git clone <your-repo-url>
-cd terraform-ec2-flask
-````
-
-2. **Edit Terraform variables**
-
-Update `main.tf` or create a local `terraform.tfvars` with your own values:
+### Sections Explained:
 
 ```hcl
-aws_region        = "<your region>"
-ami_id            = "<your ami id>"
-instance_type     = "<your instance type>"
-key_name          = "<your key name>"
-availability_zone = "<your availability zone>"
-ec2_name          = "<your EC2 name>"
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+    }
+  }
+}
 ```
 
-> **Note:** Do **not** commit `terraform.tfvars` if it contains sensitive information.
+* Specifies **AWS as the provider**.
+* Version `6.0` ensures compatibility with recent Terraform releases.
 
-3. **Initialize Terraform**
+```hcl
+provider "aws" {
+  region = "<your region>"
+}
+```
+
+* Configures the **AWS region** where resources will be provisioned.
+* Replace `<your region>` with your target region (e.g., `us-east-1`).
+
+```hcl
+data "aws_vpc" "default" {
+  default = true
+}
+```
+
+* Retrieves the **default VPC** from your AWS account.
+* All resources, including Security Groups and EC2 instances, will reside inside this VPC.
+
+---
+
+### Security Group
+
+```hcl
+resource "aws_security_group" "web_sg" {
+  name        = "web-sg"
+  description = "Allow SSH, HTTP, and Flask traffic"
+  vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = { Name = "web-sg" }
+}
+```
+
+* **Inbound rules** allow SSH (port 22) and HTTP (port 80).
+* **Outbound rules** allow all traffic.
+* This ensures your EC2 instance can be accessed securely while still serving your web app to the public internet.
+
+---
+
+### EC2 Instance
+
+```hcl
+resource "aws_instance" "my_ec2" {
+  ami                    = "<your ami id>"
+  instance_type          = "<your instance type>"
+  key_name               = "<your key name>"
+  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  availability_zone      = "<your availability zone>"
+
+  user_data = file("userdata.sh")
+
+  tags = { Name = "<your EC2 name>" }
+}
+```
+
+* **AMI** → OS image for the instance
+* **Instance type** → defines compute resources
+* **Key name** → SSH key for secure login
+* **Availability zone** → specify where to launch the instance
+* **User data** → runs `userdata.sh` to set up Python and Flask automatically
+* **Tags** → makes it easy to identify your instance in the AWS console
+
+---
+
+### Output
+
+```hcl
+output "ec2_public_ip" {
+  value = aws_instance.my_ec2.public_ip
+}
+```
+
+* Provides the **public IP** of your EC2 instance after deployment.
+* This is essential for accessing your Flask app from a browser.
+
+---
+
+## **2️⃣ userdata.sh – Automated Server Setup**
+
+`userdata.sh` is a **bash script executed automatically when the EC2 instance boots**. It automates the installation of dependencies and launches the Flask application.
+
+### Script Breakdown:
 
 ```bash
-terraform init
+#!/bin/bash
+# Update the system and install Python3, pip, and virtualenv
+apt update -y
+apt install -y python3-pip python3-venv -y
 ```
 
-4. **Plan the deployment**
+* Ensures the server is up-to-date.
+* Installs **Python3**, **pip**, and **venv** for isolated Python environments.
+
+---
 
 ```bash
-terraform plan
+# Create a virtual environment and install Flask
+python3 -m venv /home/ubuntu/flaskenv
+/home/ubuntu/flaskenv/bin/pip install flask
 ```
 
-5. **Apply the deployment**
+* Creates a **virtual environment** to isolate the Flask installation.
+* Avoids conflicts with system Python packages.
+
+---
+
+```bash
+# Create a simple Flask application
+tee /home/ubuntu/app.py > /dev/null <<EOT
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "<h1>🚀 Hello from AWS EC2 Flask App!</h1>"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=80)
+EOT
+```
+
+* Defines a **single-page Flask app**
+* `host="0.0.0.0"` → allows external access from the public IP
+* `port=80` → serves the app on the standard HTTP port
+
+---
+
+```bash
+# Run Flask in the background with root privileges
+sudo /home/ubuntu/flaskenv/bin/python /home/ubuntu/app.py &
+```
+
+* Launches the Flask app **in the background**, allowing EC2 boot to complete.
+* `sudo` is required because port 80 requires root privileges.
+* `&` ensures the process does not block other startup tasks.
+
+---
+
+## **Why This Approach**
+
+* **Infrastructure as Code** (`main.tf`) ensures the environment is reproducible and easy to version-control.
+* **Automated setup** (`userdata.sh`) eliminates manual installation steps.
+* **Security Groups** ensure your instance is accessible but protected.
+* **Background Flask process** allows the web app to start automatically on boot.
+
+---
+
+## **Quick Access**
+
+After applying Terraform:
 
 ```bash
 terraform apply -auto-approve
 ```
 
-6. **Access the Flask app**
-
-After deployment, get the public IP:
+Retrieve your instance public IP:
 
 ```bash
 terraform output ec2_public_ip
 ```
 
-Open your browser:
+Open in your browser:
 
 ```
 http://<EC2-Public-IP>/
 ```
 
----
-
-## 🔹 Notes
-
-* The Flask app runs on **port 80**, so `sudo` is used in `userdata.sh`.
-* Security Group is pre-configured to allow necessary ports.
-* This setup is for **demo and learning purposes**. For production, use a proper WSGI server and configure HTTPS.
+You will see your Flask web application running live!
 
 ---
 
-## 🔹 .gitignore
+✅ **Conclusion**:
 
-Make sure the following files are ignored:
+This combination of `main.tf` and `userdata.sh` provides a **fully automated, reproducible, and shareable AWS Flask deployment**, ideal for learning, demos, or lightweight web apps. All sensitive values are replaced with `<your ...>` to make the project safe for sharing on GitHub.
 
-```
-*.tfstate
-*.tfstate.*
-terraform.tfvars
-.terraform/
-```
-
-This prevents sensitive data from being pushed to GitHub.
-
-```
+---
