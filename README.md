@@ -255,7 +255,6 @@ terraform init
 ### **Step 2: Terraform Plan**
 
 ![Terraform Plan](tp.png)
-![Terraform Plan Summary](ta.png)
 
 * Command used:
 
@@ -275,7 +274,7 @@ terraform plan
 
 ### **Step 3: Terraform Apply**
 
-![Terraform Apply](changes.png)
+![Terraform Plan Summary](ta.png)
 
 * Command used:
 
@@ -285,6 +284,9 @@ terraform apply -auto-approve
 
 * Executes the plan and provisions the infrastructure.
 * Shows the creation of the Security Group and EC2 instance:
+
+![Terraform Apply](changes.png)
+
 
   * `aws_security_group.web_sg: Creation complete`
   * `aws_instance.my_ec2: Creation complete`
