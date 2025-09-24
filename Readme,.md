@@ -230,10 +230,109 @@ http://<EC2-Public-IP>/
 
 You will see your Flask web application running live!
 
----
+## **6️⃣ Step-by-Step Deployment with Screenshots**
 
-✅ **Conclusion**:
-
-This combination of `main.tf` and `userdata.sh` provides a **fully automated, reproducible, and shareable AWS Flask deployment**, ideal for learning, demos, or lightweight web apps. All sensitive values are replaced with `<your ...>` to make the project safe for sharing on GitHub.
+The following section demonstrates the deployment process with visual evidence of each step.
 
 ---
+
+### **Step 1: Terraform Initialization**
+
+![Terraform Init](ti.png)
+
+* Command used:
+
+```bash
+terraform init
+```
+
+* Initializes the Terraform working directory.
+* Downloads the AWS provider plugin and prepares the environment.
+* Output confirms: *"Terraform has been successfully initialized!"*
+
+---
+
+### **Step 2: Terraform Plan**
+
+![Terraform Plan](tp.png)
+![Terraform Plan Summary](ta.png)
+
+* Command used:
+
+```bash
+terraform plan
+```
+
+* Shows a preview of the changes Terraform will make.
+* Indicates two resources will be created:
+
+  1. `aws_instance.my_ec2` (EC2 instance)
+  2. `aws_security_group.web_sg` (Security Group)
+* The plan summary states:
+  *“Plan: 2 to add, 0 to change, 0 to destroy”*
+
+---
+
+### **Step 3: Terraform Apply**
+
+![Terraform Apply](changes.png)
+
+* Command used:
+
+```bash
+terraform apply -auto-approve
+```
+
+* Executes the plan and provisions the infrastructure.
+* Shows the creation of the Security Group and EC2 instance:
+
+  * `aws_security_group.web_sg: Creation complete`
+  * `aws_instance.my_ec2: Creation complete`
+* Confirms: *"Apply complete! Resources: 2 added, 0 changed, 0 destroyed"*
+
+---
+
+### **Step 4: Terraform Output**
+
+![Terraform Output](output.png)
+
+* Command used:
+
+```bash
+terraform output
+```
+
+* Displays the public IP of the newly created EC2 instance:
+  `"13.222.247.168"`
+* This IP is used to access the deployed Flask web application.
+
+---
+
+### **Step 5: Accessing the Web Application**
+
+![Web Application](web.png)
+
+* Open a web browser and enter the public IP:
+
+```text
+http://13.222.247.168/
+```
+
+* Successfully loads the Flask web app with the message:
+  *"Hello from AWS EC2 Flask App with Abdelrahman Mohamed !"*
+* Confirms that the EC2 instance and Flask app are publicly accessible.
+
+---
+
+✅ **Conclusion**
+
+* These screenshots demonstrate a **full end-to-end deployment**:
+
+  * Initializing Terraform
+  * Planning and applying changes
+  * Retrieving outputs
+  * Accessing the Flask web app on a live EC2 instance
+* This visual guide complements the `main.tf` and `userdata.sh` setup
+* This combination of `main.tf` and `userdata.sh` provides a **fully automated, reproducible, and shareable AWS Flask deployment**, ideal for learning, demos, or lightweight web apps. All sensitive values are replaced with `<your ...>` to make the project safe for sharing on GitHub.
+  
+  ---
