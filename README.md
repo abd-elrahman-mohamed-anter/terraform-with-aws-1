@@ -10,6 +10,16 @@ This setup is ideal for learning how to:
 * Manage security using AWS Security Groups
 
 ---
+```mermaid
+flowchart LR
+  A[Terraform Code] -->|terraform apply| B(Terraform)
+  B --> C[AWS Cloud]
+  C --> D[EC2 Instance]
+  D --> E[Flask App]
+  E --> F[Browser / User]
+
+```
+---
 
 ## **1️⃣ main.tf – Infrastructure as Code**
 
